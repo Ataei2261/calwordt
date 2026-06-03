@@ -32,3 +32,19 @@ export function formatDecimal(value: number, decimals: number = 2): string {
   const formatted = Number(value.toFixed(decimals)).toString();
   return toPersianDigits(formatted);
 }
+
+export const formatToFarsi = (num: number | string | null | undefined): string => {
+  if (num === null || num === undefined) return "-";
+  const parsed = typeof num === 'string' ? parseFloat(num) : num;
+  if (isNaN(parsed)) return "-";
+  
+  // 1. Convert to string using standard Farsi locale
+  let persianStr = Number(parsed).toLocaleString('fa-IR');
+  
+  // 2. Replace standard commas/spaces with the Arabic/Persian Decimal Separator (U+066B)
+  persianStr = persianStr.replace(/,/g, '٬');
+  
+  // 3. Wrap in Left-to-Right Marks (U+200E) to lock the layout in Word
+  return '\u200E' + persianStr + '\u200E';
+};
+

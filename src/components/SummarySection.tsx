@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { formatRial, toPersianDigits, formatDecimal } from '../utils/numberUtils';
+import { formatRial, toPersianDigits, formatDecimal, formatToFarsi } from '../utils/numberUtils';
 import { FileText, Printer, ShieldCheck, CheckCircle, Info, Loader2, X, FileSignature, AlertCircle } from 'lucide-react';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
@@ -79,12 +79,6 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
       console.error("Print error, fallback to direct print:", e);
       window.print();
     }
-  };
-
-  const formatToFarsi = (value: number): string => {
-    const rounded = Math.round(value);
-    const formattedString = rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return toPersianDigits(formattedString);
   };
 
   const handleGenerateDocx = async () => {
@@ -184,9 +178,9 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         week_days: contractForm.week_days,
         
         // Calculated details
-        standard_hours: toPersianDigits(standardHours),
-        student_count: toPersianDigits(parsedStudentCount),
-        total_person_hours: toPersianDigits(standardHours * parsedStudentCount),
+        standard_hours: formatToFarsi(standardHours),
+        student_count: formatToFarsi(parsedStudentCount),
+        total_person_hours: formatToFarsi(standardHours * parsedStudentCount),
         grand_total: formatToFarsi(grandTotal * parsedStudentCount),
         reg_fee_per_person: formatToFarsi(regFeePerPerson),
         consult_fee_per_person: formatToFarsi(consultFeePerPerson),
@@ -197,7 +191,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         exam_fee_per_person: formatToFarsi(examFeePerPerson),
         total_exam_fee: formatToFarsi(totalExamFee),
         total_cert_fee: formatToFarsi(totalCertFee),
-        total_days: toPersianDigits(totalDays.toFixed(2)),
+        total_days: formatToFarsi(parseFloat(totalDays.toFixed(2))),
         cost_per_person_day: formatToFarsi(costPerPersonDay),
         total_course_amount: formatToFarsi(totalCourseAmount),
         
@@ -209,7 +203,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
       calculatedTable1Rows.forEach((row, index) => {
         docData[`req_${index + 1}`] = row.isApplicant ? "☑" : "-";
         docData[`voc_${index + 1}`] = row.isVocational ? "☑" : "-";
-        docData[`w_${index + 1}`] = toPersianDigits(row.weightPercentage);
+        docData[`w_${index + 1}`] = formatToFarsi(row.weightPercentage);
         docData[`row${index + 1}_cost`] = formatToFarsi(row.rowCost || 0);
       });
 
