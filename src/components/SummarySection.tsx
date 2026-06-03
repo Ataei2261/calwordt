@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { formatRial, toPersianDigits, formatDecimal } from '../utils/numberUtils';
-import { FileText, Printer, ShieldCheck, CheckCircle, Info, Loader2 } from 'lucide-react';
+import { FileText, Printer, ShieldCheck, CheckCircle, Info, Loader2, X, FileSignature, AlertCircle } from 'lucide-react';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { saveAs } from 'file-saver';
@@ -43,8 +43,33 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   calculatedTable1Rows,
   baseClusterTariff,
 }) => {
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Form states matching user request exactly
+  const [contractForm, setContractForm] = useState({
+    mojri_name: '',
+    mojri_rep: '',
+    mojri_title: '',
+    mojri_address: '',
+    mojri_phone: '',
+    center_name: '',
+    course_count: '۱',
+    course_name: '',
+    standard_code: '',
+    target_audience: '',
+    funding_source: '',
+    payer_type: 'کارآموز',
+    exam_field: '',
+    start_date: '',
+    end_date: '',
+    teacher_name: '',
+    week_days: '',
+    student_count: '',
+  });
+
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
 
   const handlePrint = () => {
     try {
@@ -63,8 +88,35 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   };
 
   const handleGenerateDocx = async () => {
+    // Validate critical fields
+    const requiredFields = [
+      'center_name',
+      'mojri_name',
+      'course_name',
+      'student_count',
+      'start_date',
+      'end_date'
+    ];
+
+    const newErrors: Record<string, boolean> = {};
+    let isValid = true;
+    requiredFields.forEach((field) => {
+      if (!contractForm[field as keyof typeof contractForm]?.trim()) {
+        newErrors[field] = true;
+        isValid = false;
+      }
+    });
+
+    if (!isValid) {
+      setValidationErrors(newErrors);
+      setErrorMsg('لطفاً فیلدهای ستاره‌دار الزامی را تکمیل نمایید.');
+      return;
+    }
+
+    setValidationErrors({});
     setIsGenerating(true);
     setErrorMsg(null);
+
     try {
       const response = await fetch('/template.docx');
       if (!response.ok) {
@@ -78,45 +130,80 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         linebreaks: true,
       });
 
+      // Simple to-English conversion for parsing numeric variables
+      const toEnglishDigits = (str: string): string => {
+        const persianDigits = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+        const arabicDigits = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];
+        let res = str.replace(/٫/g, '.');
+        for (let i = 0; i < 10; i++) {
+          res = res.replace(persianDigits[i], i.toString()).replace(arabicDigits[i], i.toString());
+        }
+        return res;
+      };
+
+      const parsedStudentCount = Math.max(1, parseInt(toEnglishDigits(contractForm.student_count)) || 15);
+
+      // Math configurations based on calculations + student count
+      const baseTariffVal = baseClusterTariff;
+      const dailyCostVal = dailyTableCost;
+      const tieredCostVal = totalTieredCost;
+      
+      const isServices = registrationExamCost === 1900000;
+      const regFeePerPerson = isServices ? 750000 : 1000000;
+      const consultFeePerPerson = isServices ? 450000 : 600000;
+      const totalRegConsultPerPerson = regFeePerPerson + consultFeePerPerson;
+      const examFeePerPerson = isServices ? 700000 : 1000000;
+      
+      const totalRegConsultAll = totalRegConsultPerPerson * parsedStudentCount;
+      const totalExamFee = examFeePerPerson * parsedStudentCount;
+      const totalCertFee = certificateIssuanceCost * parsedStudentCount;
+      
+      const costPerPersonDay = dailyCostVal;
+      const totalCourseAmount = dailyCostVal * parsedStudentCount;
+      
+      const tieredCostPerPerson = Math.round(tieredCostVal / parsedStudentCount);
+
       const docData: Record<string, any> = {
-        mojri_name: "شرکت آموزشی تست",
-        center_name: "برادران گرگان",
-        mojri_rep: "علی علوی",
-        mojri_title: "مدیرعامل",
-        mojri_address: "گرگان، خیابان ولیعصر، پلاک ۱۲",
-        mojri_phone: "01732222222",
-        course_count: "۱",
-        course_name: "برنامه‌نویسی پایتون",
-        standard_code: "1234-56",
-        target_audience: "متقاضیان آزاد",
-        funding_source: "متقاضی آزاد",
-        payer_type: "کارآموز",
-        exam_field: "فناوری اطلاعات",
-        start_date: "1405/04/01",
-        end_date: "1405/05/01",
-        teacher_name: "محمد رضایی",
-        week_days: "روزهای زوج",
+        // Form textual strings
+        mojri_name: contractForm.mojri_name,
+        center_name: contractForm.center_name,
+        mojri_rep: contractForm.mojri_rep,
+        mojri_title: contractForm.mojri_title,
+        mojri_address: contractForm.mojri_address,
+        mojri_phone: contractForm.mojri_phone,
+        course_count: toPersianDigits(contractForm.course_count),
+        course_name: contractForm.course_name,
+        standard_code: toPersianDigits(contractForm.standard_code),
+        target_audience: contractForm.target_audience,
+        funding_source: contractForm.funding_source,
+        payer_type: contractForm.payer_type,
+        exam_field: contractForm.exam_field,
+        start_date: toPersianDigits(contractForm.start_date),
+        end_date: toPersianDigits(contractForm.end_date),
+        teacher_name: contractForm.teacher_name,
+        week_days: contractForm.week_days,
         
+        // Calculated details
         standard_hours: toPersianDigits(standardHours),
-        student_count: "۱۵",
-        total_person_hours: toPersianDigits(standardHours * 15),
-        grand_total: formatToFarsi(grandTotal),
-        reg_fee_per_person: formatToFarsi(1000000),
-        consult_fee_per_person: formatToFarsi(600000),
-        total_reg_consult_per_person: formatToFarsi(1600000),
-        total_reg_consult_all: formatToFarsi(1600000 * 15),
-        tiered_cost_per_person: formatToFarsi(totalTieredCost / 15),
-        total_tiered_cost: formatToFarsi(totalTieredCost),
-        exam_fee_per_person: formatToFarsi(1000000),
-        total_exam_fee: formatToFarsi(1000000 * 15),
-        total_cert_fee: formatToFarsi(1500000 * 15),
+        student_count: toPersianDigits(parsedStudentCount),
+        total_person_hours: toPersianDigits(standardHours * parsedStudentCount),
+        grand_total: formatToFarsi(grandTotal * parsedStudentCount),
+        reg_fee_per_person: formatToFarsi(regFeePerPerson),
+        consult_fee_per_person: formatToFarsi(consultFeePerPerson),
+        total_reg_consult_per_person: formatToFarsi(totalRegConsultPerPerson),
+        total_reg_consult_all: formatToFarsi(totalRegConsultAll),
+        tiered_cost_per_person: formatToFarsi(tieredCostPerPerson),
+        total_tiered_cost: formatToFarsi(tieredCostVal),
+        exam_fee_per_person: formatToFarsi(examFeePerPerson),
+        total_exam_fee: formatToFarsi(totalExamFee),
+        total_cert_fee: formatToFarsi(totalCertFee),
         total_days: toPersianDigits(totalDays.toFixed(2)),
-        cost_per_person_day: formatToFarsi(dailyTableCost / 15),
-        total_course_amount: formatToFarsi(dailyTableCost),
+        cost_per_person_day: formatToFarsi(costPerPersonDay),
+        total_course_amount: formatToFarsi(totalCourseAmount),
         
         cluster_header: "تعرفه‌های مصوب در خوشه انتخابی به ازای هر نفر - روز",
-        base_tariff: formatToFarsi(baseClusterTariff),
-        table1_total: formatToFarsi(dailyTableCost),
+        base_tariff: formatToFarsi(baseTariffVal),
+        table1_total: formatToFarsi(totalCourseAmount),
       };
 
       calculatedTable1Rows.forEach((row, index) => {
@@ -132,12 +219,21 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         type: 'blob',
         mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       });
-      saveAs(out, 'test-gharardad.docx');
+      
+      saveAs(out, 'gharardad-tvto.docx');
+      setIsModalOpen(false); // successfully built & closes modal
     } catch (error: any) {
       console.error(error);
       setErrorMsg(error.message || 'خطایی در تولید سند رخ داده است.');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleInputChange = (field: keyof typeof contractForm, value: string) => {
+    setContractForm(prev => ({ ...prev, [field]: value }));
+    if (validationErrors[field]) {
+      setValidationErrors(prev => ({ ...prev, [field]: false }));
     }
   };
 
@@ -152,30 +248,28 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         <div className="flex gap-2 items-center print:hidden">
           <button
             type="button"
-            disabled={isGenerating}
-            onClick={handleGenerateDocx}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-bold text-xs transition-all cursor-pointer shadow-sm"
+            onClick={() => {
+              setErrorMsg(null);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition-all cursor-pointer shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
           >
-            {isGenerating ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <FileText className="w-3.5 h-3.5" />
-            )}
-            تست خروجی قرارداد (Word)
+            <FileSignature className="w-3.5 h-3.5 animate-pulse" />
+            صدور قرارداد
           </button>
           <button
             type="button"
             onClick={handlePrint}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded font-bold text-[10px] transition-all cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-xs transition-all cursor-pointer"
           >
-            <Printer className="w-3 h-3" />
+            <Printer className="w-3.5 h-3.5" />
             نسخه چاپی
           </button>
         </div>
       </div>
 
-      {errorMsg && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-650 text-xs flex items-center gap-2">
+      {errorMsg && !isModalOpen && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
           <Info className="w-4 h-4 text-red-500 shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -255,6 +349,314 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
           پاک کردن همه مقادیر
         </button>
       </div>
+
+      {/* Contract Generation Data-Entry Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" dir="rtl">
+          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative border border-slate-200 flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 mb-6 shrink-0">
+              <div className="flex items-center gap-2">
+                <FileSignature className="w-5 h-5 text-blue-600" />
+                <h2 className="text-lg font-bold text-slate-800">اطلاعات تکمیلی جهت صدور قرارداد</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Error messaging inside Modal */}
+            {errorMsg && (
+              <div className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                <span className="font-bold">{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Modal Scrollable Content / Form */}
+            <div className="space-y-6 overflow-y-auto pr-1 pl-1 flex-1 pb-4">
+              
+              {/* Section A: اطلاعات مجری و مرکز */}
+              <div className="space-y-4">
+                <div className="border-r-4 border-blue-600 pr-3">
+                  <h3 className="text-sm font-extrabold text-slate-800">الف. اطلاعات مجری و مرکز</h3>
+                  <p className="text-[10px] text-slate-400">اطلاعات حقوقی مربوط به مدیریت و کارگاه آموزشگاه</p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
+                      نام مرکز فنی و حرفه‌ای <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={contractForm.center_name}
+                      onChange={(e) => handleInputChange('center_name', e.target.value)}
+                      placeholder="مثال: برادران گرگان"
+                      className={`w-full p-2.5 bg-slate-50 border ${validationErrors.center_name ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
+                      نام مجری / آموزشگاه <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={contractForm.mojri_name}
+                      onChange={(e) => handleInputChange('mojri_name', e.target.value)}
+                      placeholder="مثال: شرکت آموزشی مبتکران"
+                      className={`w-full p-2.5 bg-slate-50 border ${validationErrors.mojri_name ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">نماینده مجری</label>
+                    <input
+                      type="text"
+                      value={contractForm.mojri_rep}
+                      onChange={(e) => handleInputChange('mojri_rep', e.target.value)}
+                      placeholder="مثال: علی علوی"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">سمت نماینده</label>
+                    <input
+                      type="text"
+                      value={contractForm.mojri_title}
+                      onChange={(e) => handleInputChange('mojri_title', e.target.value)}
+                      placeholder="مثال: مدیرعامل / نماینده قانونی"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">تلفن مجری</label>
+                    <input
+                      type="text"
+                      value={contractForm.mojri_phone}
+                      onChange={(e) => handleInputChange('mojri_phone', e.target.value)}
+                      placeholder="مثال: 01732222222"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 md:col-span-2 lg:col-span-3">
+                    <label className="text-xs font-bold text-slate-600">آدرس دقیق مجری</label>
+                    <input
+                      type="text"
+                      value={contractForm.mojri_address}
+                      onChange={(e) => handleInputChange('mojri_address', e.target.value)}
+                      placeholder="مثال: استان گلستان، گرگان، خیابان ولیعصر، نبش عدالت دهم"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section B: مشخصات دوره */}
+              <div className="space-y-4">
+                <div className="border-r-4 border-emerald-500 pr-3">
+                  <h3 className="text-sm font-extrabold text-slate-800">ب. مشخصات دوره آموزشی</h3>
+                  <p className="text-[10px] text-slate-400">شناسه استانداردهای آموزشی، مربی و فراگیران</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
+                      عنوان دوره <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={contractForm.course_name}
+                      onChange={(e) => handleInputChange('course_name', e.target.value)}
+                      placeholder="مثال: برنامه‌نویسی پایتون"
+                      className={`w-full p-2.5 bg-slate-50 border ${validationErrors.course_name ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">کد استاندارد دوره</label>
+                    <input
+                      type="text"
+                      value={contractForm.standard_code}
+                      onChange={(e) => handleInputChange('standard_code', e.target.value)}
+                      placeholder="مثال: 2513-56-11"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">تعداد دفعات اجرای دوره</label>
+                    <input
+                      type="text"
+                      value={contractForm.course_count}
+                      onChange={(e) => handleInputChange('course_count', e.target.value)}
+                      placeholder="مثال: ۱"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">نام مربی محترم</label>
+                    <input
+                      type="text"
+                      value={contractForm.teacher_name}
+                      onChange={(e) => handleInputChange('teacher_name', e.target.value)}
+                      placeholder="مثال: مهندس محمد رضایی"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">گروه جامعه هدف</label>
+                    <input
+                      type="text"
+                      value={contractForm.target_audience}
+                      onChange={(e) => handleInputChange('target_audience', e.target.value)}
+                      placeholder="مثال: کارآموزان آزاد / شاغلین صنایع"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
+                      تعداد کارآموزان دوره <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={contractForm.student_count}
+                      onChange={(e) => handleInputChange('student_count', e.target.value)}
+                      placeholder="مثال: ۱۵"
+                      className={`w-full p-2.5 bg-slate-50 border ${validationErrors.student_count ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section C: زمانبندی و مالی */}
+              <div className="space-y-4">
+                <div className="border-r-4 border-amber-500 pr-3">
+                  <h3 className="text-sm font-extrabold text-slate-800">ج. زمان‌بندی و سیستم مالی</h3>
+                  <p className="text-[10px] text-slate-400">تاریخ‌ها و جزئیات تفاهم‌نامه پرداخت</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
+                      تاریخ شروع دوره <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={contractForm.start_date}
+                      onChange={(e) => handleInputChange('start_date', e.target.value)}
+                      placeholder="مثال: ۱۴۰۵/۰۴/۰۱"
+                      className={`w-full p-2.5 bg-slate-50 border ${validationErrors.start_date ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
+                      تاریخ پایان دوره <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={contractForm.end_date}
+                      onChange={(e) => handleInputChange('end_date', e.target.value)}
+                      placeholder="مثال: ۱۴۰۵/۰۵/۰۱"
+                      className={`w-full p-2.5 bg-slate-50 border ${validationErrors.end_date ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">ایام برگزاری در هفته</label>
+                    <input
+                      type="text"
+                      value={contractForm.week_days}
+                      onChange={(e) => handleInputChange('week_days', e.target.value)}
+                      placeholder="مثال: روزهای زوج"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">منبع تامین هزینه دوره</label>
+                    <input
+                      type="text"
+                      value={contractForm.funding_source}
+                      onChange={(e) => handleInputChange('funding_source', e.target.value)}
+                      placeholder="مثال: متقاضی آزاد"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">پرداخت کننده هزینه</label>
+                    <select
+                      value={contractForm.payer_type}
+                      onChange={(e) => handleInputChange('payer_type', e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all cursor-pointer"
+                    >
+                      <option value="کارآموز">کارآموز</option>
+                      <option value="طرف اول">طرف اول</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">رشته آزمونی مربوطه</label>
+                    <input
+                      type="text"
+                      value={contractForm.exam_field}
+                      onChange={(e) => handleInputChange('exam_field', e.target.value)}
+                      placeholder="مثال: فناوری اطلاعات"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Sticky Footer Action Bar */}
+            <div className="pt-4 border-t border-slate-100 mt-6 shrink-0 flex flex-col sm:flex-row justify-end items-center gap-3">
+              <span className="text-[10px] text-slate-400 ml-auto text-right w-full sm:w-auto">پر کردن فیلدهای ستاره‌دار معرفی شده الزامی است.</span>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="w-full sm:w-auto px-5 py-2.5 border border-slate-250 hover:bg-slate-50 rounded-xl text-slate-600 font-bold text-xs transition-all cursor-pointer"
+              >
+                انصراف
+              </button>
+              <button
+                type="button"
+                disabled={isGenerating}
+                onClick={handleGenerateDocx}
+                className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>در حال تولید سند...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4" />
+                    <span>تایید و دانلود قرارداد</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
