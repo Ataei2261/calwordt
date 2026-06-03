@@ -70,6 +70,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
     teacher_name: '',
     week_days: '',
     student_count: '',
+    studentCountDahak: '0',
   });
 
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
@@ -158,7 +159,9 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
       const costPerPersonDay = dailyCostVal;
       const totalCourseAmount = dailyCostVal * parsedStudentCount;
       
-      const tieredCostPerPerson = Math.round(tieredCostVal / parsedStudentCount);
+      const tieredIncrease = Number(totalTieredCost) || 0; 
+      const countDahak = Number(toEnglishDigits(contractForm.studentCountDahak)) || 0;
+      const calculatedTotalTiered = tieredIncrease * countDahak;
 
       const docData: Record<string, any> = {
         // Form textual strings
@@ -189,8 +192,9 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         consult_fee_per_person: formatToFarsi(consultFeePerPerson),
         total_reg_consult_per_person: formatToFarsi(totalRegConsultPerPerson),
         total_reg_consult_all: formatToFarsi(totalRegConsultAll),
-        tiered_cost_per_person: formatToFarsi(tieredCostPerPerson),
-        total_tiered_cost: formatToFarsi(tieredCostVal),
+        tiered_cost_per_person: formatToFarsi(tieredIncrease),
+        "student_count-dahak": formatToFarsi(countDahak),
+        total_tiered_cost: formatToFarsi(calculatedTotalTiered),
         exam_fee_per_person: formatToFarsi(examFeePerPerson),
         total_exam_fee: formatToFarsi(totalExamFee),
         total_cert_fee: formatToFarsi(totalCertFee),
@@ -534,6 +538,20 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
                       onChange={(e) => handleInputChange('student_count', e.target.value)}
                       placeholder="مثال: ۱۵"
                       className={`w-full p-2.5 bg-slate-50 border ${validationErrors.student_count ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
+                      تعداد افراد دهک بالای ۵
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={contractForm.studentCountDahak}
+                      onChange={(e) => handleInputChange('studentCountDahak', e.target.value)}
+                      placeholder="مثال: ۰"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
                     />
                   </div>
                 </div>
