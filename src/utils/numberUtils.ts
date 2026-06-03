@@ -48,3 +48,20 @@ export const formatToFarsi = (num: number | string | null | undefined): string =
   return '\u200E' + persianStr + '\u200E';
 };
 
+export const formatDateForWord = (dateString: string | null | undefined): string => {
+  if (!dateString) return "";
+  
+  // 1. Convert to string (just in case) and split by the slash
+  const parts = String(dateString).split('/');
+  
+  // 2. If it is a standard 3-part date (Year, Month, Day)
+  if (parts.length === 3) {
+    // Reverse the array elements and join them back
+    // e.g., ["1405", "03", "12"] becomes "12/03/1405"
+    return parts.reverse().join('/');
+  }
+  
+  // Fallback if the format is unexpected
+  return String(dateString);
+};
+

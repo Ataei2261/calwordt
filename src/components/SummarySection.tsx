@@ -4,11 +4,14 @@
  */
 
 import React, { useState } from 'react';
-import { formatRial, toPersianDigits, formatDecimal, formatToFarsi } from '../utils/numberUtils';
+import { formatRial, toPersianDigits, formatDecimal, formatToFarsi, formatDateForWord } from '../utils/numberUtils';
 import { FileText, Printer, ShieldCheck, CheckCircle, Info, Loader2, X, FileSignature, AlertCircle } from 'lucide-react';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { saveAs } from 'file-saver';
+import DatePicker from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
 
 interface SummarySectionProps {
   selectedClusterName: string;
@@ -172,8 +175,8 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         funding_source: contractForm.funding_source,
         payer_type: contractForm.payer_type,
         exam_field: contractForm.exam_field,
-        start_date: toPersianDigits(contractForm.start_date),
-        end_date: toPersianDigits(contractForm.end_date),
+        start_date: toPersianDigits(formatDateForWord(contractForm.start_date)),
+        end_date: toPersianDigits(formatDateForWord(contractForm.end_date)),
         teacher_name: contractForm.teacher_name,
         week_days: contractForm.week_days,
         
@@ -197,7 +200,8 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         
         cluster_header: "تعرفه‌های مصوب در خوشه انتخابی به ازای هر نفر - روز",
         base_tariff: formatToFarsi(baseTariffVal),
-        table1_total: formatToFarsi(totalCourseAmount),
+        table1_total: formatToFarsi(dailyTableCost),
+        table2_total: formatToFarsi(grandTotal),
       };
 
       calculatedTable1Rows.forEach((row, index) => {
@@ -547,12 +551,17 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
                     <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
                       تاریخ شروع دوره <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <DatePicker
+                      calendar={persian}
+                      locale={persian_fa}
                       value={contractForm.start_date}
-                      onChange={(e) => handleInputChange('start_date', e.target.value)}
-                      placeholder="مثال: ۱۴۰۵/۰۴/۰۱"
-                      className={`w-full p-2.5 bg-slate-50 border ${validationErrors.start_date ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                      onChange={(date: any) => {
+                        const formatted = date ? date.format("YYYY/MM/DD") : "";
+                        handleInputChange('start_date', formatted);
+                      }}
+                      calendarPosition="bottom-right"
+                      inputClass={`w-full p-2.5 bg-slate-50 border ${validationErrors.start_date ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                      placeholder="انتخاب تاریخ شروع"
                     />
                   </div>
 
@@ -560,12 +569,17 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
                     <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
                       تاریخ پایان دوره <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <DatePicker
+                      calendar={persian}
+                      locale={persian_fa}
                       value={contractForm.end_date}
-                      onChange={(e) => handleInputChange('end_date', e.target.value)}
-                      placeholder="مثال: ۱۴۰۵/۰۵/۰۱"
-                      className={`w-full p-2.5 bg-slate-50 border ${validationErrors.end_date ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                      onChange={(date: any) => {
+                        const formatted = date ? date.format("YYYY/MM/DD") : "";
+                        handleInputChange('end_date', formatted);
+                      }}
+                      calendarPosition="bottom-right"
+                      inputClass={`w-full p-2.5 bg-slate-50 border ${validationErrors.end_date ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                      placeholder="انتخاب تاریخ پایان"
                     />
                   </div>
 

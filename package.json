@@ -23,6 +23,7 @@
     "pizzip": "^3.2.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "react-multi-date-picker": "^4.5.2",
     "vite": "^6.2.3"
   },
   "devDependencies": {
