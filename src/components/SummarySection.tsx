@@ -58,6 +58,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
     mojri_address: '',
     mojri_phone: '',
     center_name: '',
+    boss_name: '',
     course_count: '۱',
     course_name: '',
     standard_code: '',
@@ -161,10 +162,15 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
       const countDahak = Number(toEnglishDigits(contractForm.studentCountDahak)) || 0;
       const calculatedTotalTiered = tieredIncrease * countDahak;
 
+      const count = Number(toEnglishDigits(contractForm.student_count)) || 0;
+      const totalRegFee = regFeePerPerson * count;
+      const totalConsultFee = consultFeePerPerson * count;
+
       const docData: Record<string, any> = {
         // Form textual strings
         mojri_name: contractForm.mojri_name,
         center_name: contractForm.center_name,
+        boss_name: contractForm.boss_name,
         mojri_rep: contractForm.mojri_rep,
         mojri_title: contractForm.mojri_title,
         mojri_address: contractForm.mojri_address,
@@ -189,6 +195,8 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         grand_total: formatToFarsi(grandTotal * parsedStudentCount),
         reg_fee_per_person: formatToFarsi(regFeePerPerson),
         consult_fee_per_person: formatToFarsi(consultFeePerPerson),
+        reg_fee_per_person2: formatToFarsi(totalRegFee),
+        consult_fee_per_person2: formatToFarsi(totalConsultFee),
         total_reg_consult_per_person: formatToFarsi(totalRegConsultPerPerson),
         total_reg_consult_all: formatToFarsi(totalRegConsultAll),
         tiered_cost_per_person: formatToFarsi(tieredIncrease),
@@ -400,6 +408,17 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
                       onChange={(e) => handleInputChange('center_name', e.target.value)}
                       placeholder="مثال: برادران گرگان"
                       className={`w-full p-2.5 bg-slate-50 border ${validationErrors.center_name ? 'border-red-500 ring-2 ring-red-105' : 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'} rounded-lg text-xs font-semibold text-slate-800 outline-none transition-all`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-600">نام کامل رئیس مرکز</label>
+                    <input
+                      type="text"
+                      value={contractForm.boss_name}
+                      onChange={(e) => handleInputChange('boss_name', e.target.value)}
+                      placeholder="مثال: علیرضا حسینی"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
                     />
                   </div>
 
