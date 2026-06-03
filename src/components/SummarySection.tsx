@@ -62,15 +62,13 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
     course_name: '',
     standard_code: '',
     target_audience: '',
-    funding_source: '',
-    payer_type: 'کارآموز',
-    exam_field: '',
     start_date: '',
     end_date: '',
     teacher_name: '',
     week_days: '',
     student_count: '',
     studentCountDahak: '0',
+    daily_hours: '',
   });
 
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
@@ -175,9 +173,10 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         course_name: contractForm.course_name,
         standard_code: toPersianDigits(contractForm.standard_code),
         target_audience: contractForm.target_audience,
-        funding_source: contractForm.funding_source,
-        payer_type: contractForm.payer_type,
-        exam_field: contractForm.exam_field,
+        funding_source: "-",
+        payer_type: "-",
+        exam_field: "-",
+        daily_hours: contractForm.daily_hours,
         start_date: toPersianDigits(formatDateForWord(contractForm.start_date)),
         end_date: toPersianDigits(formatDateForWord(contractForm.end_date)),
         teacher_name: contractForm.teacher_name,
@@ -613,35 +612,12 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-600">منبع تامین هزینه دوره</label>
+                    <label className="text-xs font-bold text-slate-600">ساعت برگزاری در روز</label>
                     <input
                       type="text"
-                      value={contractForm.funding_source}
-                      onChange={(e) => handleInputChange('funding_source', e.target.value)}
-                      placeholder="مثال: متقاضی آزاد"
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-600">پرداخت کننده هزینه</label>
-                    <select
-                      value={contractForm.payer_type}
-                      onChange={(e) => handleInputChange('payer_type', e.target.value)}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all cursor-pointer"
-                    >
-                      <option value="کارآموز">کارآموز</option>
-                      <option value="طرف اول">طرف اول</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-600">رشته آزمونی مربوطه</label>
-                    <input
-                      type="text"
-                      value={contractForm.exam_field}
-                      onChange={(e) => handleInputChange('exam_field', e.target.value)}
-                      placeholder="مثال: فناوری اطلاعات"
+                      value={contractForm.daily_hours}
+                      onChange={(e) => handleInputChange('daily_hours', e.target.value)}
+                      placeholder="مثلاً ۸ تا ۱۰"
                       className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
                     />
                   </div>
