@@ -38,13 +38,13 @@ export const formatToFarsi = (num: number | string | null | undefined): string =
   const parsed = typeof num === 'string' ? parseFloat(num) : num;
   if (isNaN(parsed)) return "-";
   
-  // 1. Convert to Farsi format (this usually inserts '٬' automatically in modern browsers)
+  // 1. Convert to string using standard Farsi locale
   let persianStr = Number(parsed).toLocaleString('fa-IR');
   
-  // 2. Force replace any Arabic separators '٬' or spaces with the standard bottom comma ','
-  persianStr = persianStr.replace(/٬/g, ',').replace(/\s/g, ',');
+  // 2. Replace standard commas/spaces with the Arabic/Persian Decimal Separator (U+066B)
+  persianStr = persianStr.replace(/,/g, '٬');
   
-  // 3. Wrap the result in LRE (\u202A) and PDF (\u202C) to make it bulletproof in MS Word
-  return '\u202A' + persianStr + '\u202C';
+  // 3. Wrap in Left-to-Right Marks (U+200E) to lock the layout in Word
+  return '\u200E' + persianStr + '\u200E';
 };
 
