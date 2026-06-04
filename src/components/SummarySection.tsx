@@ -151,15 +151,15 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
       // 2. Calculate Exam Fee based on the selected cluster
       let examFeePerPerson = 0;
       if (selectedClusterName.includes("صنعت و کشاورزی")) {
-        examFeePerPerson = 500000;
+        examFeePerPerson = 2000000;
       } else if (selectedClusterName.includes("خدمات")) {
-        examFeePerPerson = 500000;
+        examFeePerPerson = 1300000;
       } else if (selectedClusterName.includes("فرهنگ و هنر")) {
-        examFeePerPerson = 400000;
+        examFeePerPerson = 2000000;
       }
 
       // 3. Compute course-related values based on input and calculations
-      const totalCourseAmount = dailyTableCost * parsedStudentCount;
+      const totalCourseAmount = Number(sumOfRowCosts) * Number(totalDays) * Number(parsedStudentCount);
 
       // 4. Multiply individual fees by student count for double check mapping
       const count = Number(toEnglishDigits(contractForm.student_count)) || 0;
@@ -173,7 +173,12 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
       const totalTieredCostValue = tieredIncrease * countDahak;
 
       // 6. Complete the strict contract grand total calculation
-      const contractTotalAmount = totalCourseAmount + totalTieredCostValue + regFeePerPerson2 + consultFeePerPerson2 + totalExamFee;
+      const contractTotalAmount = 
+        Number(totalCourseAmount) + 
+        Number(regFeePerPerson2) + 
+        Number(consultFeePerPerson2) + 
+        Number(totalExamFee) + 
+        Number(totalTieredCostValue);
 
       // 7. Standard supporting fees
       const totalRegConsultPerPerson = regFeePerPerson + consultFeePerPerson;
@@ -226,7 +231,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         
         cluster_header: "تعرفه‌های مصوب در خوشه انتخابی به ازای هر نفر - روز",
         base_tariff: formatToFarsi(baseTariffVal),
-        table1_total: formatToFarsi(dailyTableCost),
+        table1_total: formatToFarsi(sumOfRowCosts),
         table2_total: formatToFarsi(grandTotal),
       };
 
