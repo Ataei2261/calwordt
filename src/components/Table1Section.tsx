@@ -264,7 +264,7 @@ export const Table1Section: React.FC<Table1SectionProps> = ({
             </span>
           </div>
           <div className="flex justify-between items-center border-t border-slate-200/60 pt-2 text-slate-700 font-bold">
-            <span className="text-blue-700">مبلغ کل قرارداد  ( بدون احتساب هزینه صدور گواهینامه ):</span>
+            <span className="text-blue-700">مبلغ کل هزینه طول دوره ( حاصلضرب هزینه یک نفر روز در تعداد روز ):</span>
             <span className="text-sm font-extrabold font-sans text-blue-900" id="daily-table-cost-display">
               {toPersianDigits(Math.round(dailyTableCost).toLocaleString())} ریال
             </span>

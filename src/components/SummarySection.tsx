@@ -142,29 +142,43 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
 
       // Math configurations based on calculations + student count
       const baseTariffVal = baseClusterTariff;
-      const dailyCostVal = dailyTableCost;
-      const tieredCostVal = totalTieredCost;
+      const costPerPersonDay = dailyTableCost;
       
-      const isServices = registrationExamCost === 1900000;
-      const regFeePerPerson = isServices ? 750000 : 1000000;
-      const consultFeePerPerson = isServices ? 450000 : 600000;
-      const totalRegConsultPerPerson = regFeePerPerson + consultFeePerPerson;
-      const examFeePerPerson = isServices ? 700000 : 1000000;
-      
-      const totalRegConsultAll = totalRegConsultPerPerson * parsedStudentCount;
-      const totalExamFee = examFeePerPerson * parsedStudentCount;
-      const totalCertFee = certificateIssuanceCost * parsedStudentCount;
-      
-      const costPerPersonDay = dailyCostVal;
-      const totalCourseAmount = dailyCostVal * parsedStudentCount;
-      
-      const tieredIncrease = Number(totalTieredCost) || 0; 
-      const countDahak = Number(toEnglishDigits(contractForm.studentCountDahak)) || 0;
-      const calculatedTotalTiered = tieredIncrease * countDahak;
+      // 1. Set fixed base fees
+      const regFeePerPerson = 300000;
+      const consultFeePerPerson = 300000;
 
+      // 2. Calculate Exam Fee based on the selected cluster
+      let examFeePerPerson = 0;
+      if (selectedClusterName.includes("صنعت و کشاورزی")) {
+        examFeePerPerson = 500000;
+      } else if (selectedClusterName.includes("خدمات")) {
+        examFeePerPerson = 500000;
+      } else if (selectedClusterName.includes("فرهنگ و هنر")) {
+        examFeePerPerson = 400000;
+      }
+
+      // 3. Compute course-related values based on input and calculations
+      const totalCourseAmount = dailyTableCost * parsedStudentCount;
+
+      // 4. Multiply individual fees by student count for double check mapping
       const count = Number(toEnglishDigits(contractForm.student_count)) || 0;
-      const totalRegFee = regFeePerPerson * count;
-      const totalConsultFee = consultFeePerPerson * count;
+      const regFeePerPerson2 = regFeePerPerson * count;
+      const consultFeePerPerson2 = consultFeePerPerson * count;
+      const totalExamFee = examFeePerPerson * count;
+
+      // 5. Calculate total tiered cost if decile-based increase exists
+      const tieredIncrease = Number(totalTieredCost) || 0;
+      const countDahak = Number(toEnglishDigits(contractForm.studentCountDahak)) || 0;
+      const totalTieredCostValue = tieredIncrease * countDahak;
+
+      // 6. Complete the strict contract grand total calculation
+      const contractTotalAmount = totalCourseAmount + totalTieredCostValue + regFeePerPerson2 + consultFeePerPerson2 + totalExamFee;
+
+      // 7. Standard supporting fees
+      const totalRegConsultPerPerson = regFeePerPerson + consultFeePerPerson;
+      const totalRegConsultAll = totalRegConsultPerPerson * parsedStudentCount;
+      const totalCertFee = certificateIssuanceCost * parsedStudentCount;
 
       const docData: Record<string, any> = {
         // Form textual strings
@@ -195,19 +209,20 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         grand_total: formatToFarsi(grandTotal * parsedStudentCount),
         reg_fee_per_person: formatToFarsi(regFeePerPerson),
         consult_fee_per_person: formatToFarsi(consultFeePerPerson),
-        reg_fee_per_person2: formatToFarsi(totalRegFee),
-        consult_fee_per_person2: formatToFarsi(totalConsultFee),
+        reg_fee_per_person2: formatToFarsi(regFeePerPerson2),
+        consult_fee_per_person2: formatToFarsi(consultFeePerPerson2),
         total_reg_consult_per_person: formatToFarsi(totalRegConsultPerPerson),
         total_reg_consult_all: formatToFarsi(totalRegConsultAll),
         tiered_cost_per_person: formatToFarsi(tieredIncrease),
         "student_count-dahak": formatToFarsi(countDahak),
-        total_tiered_cost: formatToFarsi(calculatedTotalTiered),
+        total_tiered_cost: formatToFarsi(totalTieredCostValue),
         exam_fee_per_person: formatToFarsi(examFeePerPerson),
         total_exam_fee: formatToFarsi(totalExamFee),
         total_cert_fee: formatToFarsi(totalCertFee),
         total_days: formatToFarsi(parseFloat(totalDays.toFixed(2))),
         cost_per_person_day: formatToFarsi(costPerPersonDay),
         total_course_amount: formatToFarsi(totalCourseAmount),
+        contract_total_amount: formatToFarsi(contractTotalAmount),
         
         cluster_header: "تعرفه‌های مصوب در خوشه انتخابی به ازای هر نفر - روز",
         base_tariff: formatToFarsi(baseTariffVal),
@@ -310,7 +325,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
       <div className="space-y-3 text-[13px] sm:text-[14px]">
         {/* Item 1: Workshop cost */}
         <div className="flex justify-between items-center py-2 border-b border-slate-100/80">
-          <span className="text-slate-700 font-extrabold">۱. مبلغ کل قرارداد ( بدون احتساب هزینه صدور گواهینامه ):</span>
+          <span className="text-slate-700 font-extrabold">۱. مبلغ کل هزینه طول دوره ( حاصلضرب هزینه یک نفر روز در تعداد روز ):</span>
           <span className="font-black font-sans text-slate-900 text-[15px] sm:text-base">{formatRial(dailyTableCost)}</span>
         </div>
 
